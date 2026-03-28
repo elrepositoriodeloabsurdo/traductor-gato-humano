@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiauTraductor - HTML standalone</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Nunito:wght@300;400;600;700;800;900&display=swap');`;
+
+const CSS = `
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#fdf6ec;
+  --warm:#fff8f0;
+  --orange:#ff7043;
+  --orange-l:#ff8a65;
+  --orange-xl:#fff3ee;
+  --teal:#00bfa5;
+  --teal-l:#1de9b6;
+  --teal-xl:#e0faf5;
+  --purple:#7c4dff;
+  --purple-xl:#ede7f6;
+  --yellow:#ffd740;
+  --pink:#f06292;
+  --ink:#2d1b00;
+  --ink2:#5d4037;
+  --ink3:#8d6e63;
+  --border:#f0e0d0;
+  --white:#ffffff;
+  --sh:0 4px 20px rgba(45,27,0,.08);
+  --sh-lg:0 8px 40px rgba(45,27,0,.14);
+  --ff:'Nunito',sans-serif;
+  --fd:'Fredoka',sans-serif;
+}
+html,body{min-height:100vh;background:var(--cream);color:var(--ink);font-family:var(--ff)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--warm)}
+::-webkit-scrollbar-thumb{background:var(--orange-l);border-radius:3px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{0%{transform:scale(.8);opacity:0}70%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+@keyframes wiggle{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes dotBlink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes rainbow{0%{color:#ff7043}20%{color:#ffd740}40%{color:#00bfa5}60%{color:#7c4dff}80%{color:#f06292}100%{color:#ff7043}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+.fu{animation:fadeUp .4s ease both}
+.pop{animation:pop .4s ease both}
+.app{min-height:100vh;display:flex;flex-direction:column}
+.header{background:linear-gradient(135deg,var(--orange),var(--orange-l),#ffab40);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(255,112,67,.25)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-ico{font-size:36px;animation:wiggle 2s ease-in-out infinite}
+.brand-name{font-family:var(--fd);font-size:26px;font-weight:600;color:var(--white);text-shadow:0 2px 8px rgba(0,0,0,.15);letter-spacing:.01em}
+.brand-tag{font-size:11px;color:rgba(255,255,255,.8);background:rgba(255,255,255,.2);padding:3px 10px;border-radius:20px;margin-left:2px}
+.header-r{display:flex;align-items:center;gap:10px}
+.lang-badge{background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);color:var(--white);font-family:var(--fd);font-size:13px;padding:6px 14px;border-radius:20px}
+.hero{text-align:center;padding:48px 20px 32px;position:relative;overflow:hidden}
+.hero-title{font-family:var(--fd);font-size:clamp(32px,6vw,64px);font-weight:700;color:var(--ink);line-height:1.1;margin-bottom:12px}
+.hero-title span{color:var(--orange)}
+.hero-sub{font-size:16px;color:var(--ink3);max-width:500px;margin:0 auto 32px;line-height:1.6}
+.floaters{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.floater{position:absolute;font-size:28px;opacity:.15;animation:float 3s ease-in-out infinite}
+.dir-toggle{display:flex;align-items:center;justify-content:center;gap:0;margin:0 auto 32px;background:var(--white);border:2px solid var(--border);border-radius:50px;padding:5px;max-width:380px;box-shadow:var(--sh)}
+.dir-btn{flex:1;padding:11px 20px;border:none;border-radius:40px;cursor:pointer;font-family:var(--fd);font-size:14px;font-weight:600;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--ink3);background:transparent}
+.dir-btn.on{background:linear-gradient(135deg,var(--orange),var(--orange-l));color:var(--white);box-shadow:0 4px 14px rgba(255,112,67,.35);transform:scale(1.02)}
+.dir-arrow{font-size:18px;color:var(--ink3);flex-shrink:0}
+.translator{max-width:760px;margin:0 auto 32px;padding:0 20px}
+.trans-card{background:var(--white);border-radius:24px;box-shadow:var(--sh-lg);overflow:hidden;border:2px solid var(--border)}
+.panels{display:grid;grid-template-columns:1fr 1fr;min-height:280px}
+.panel{padding:24px;display:flex;flex-direction:column;gap:12px;position:relative}
+.panel-l{border-right:2px solid var(--border)}
+.panel-label{font-family:var(--fd);font-size:13px;font-weight:600;color:var(--ink3);display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.06em}
+.panel-icon{font-size:18px}
+.panel-textarea{flex:1;border:none;outline:none;resize:none;font-family:var(--ff);font-size:14px;color:var(--ink);background:transparent;min-height:160px;line-height:1.65}
+.panel-textarea::placeholder{color:var(--border);font-size:14px}
+.panel-output{flex:1;min-height:160px;font-family:var(--ff);font-size:14px;color:var(--ink2);line-height:1.65;position:relative}
+.output-text{animation:fadeUp .4s ease;white-space:pre-wrap}
+.output-placeholder{color:var(--border);font-size:13px;font-style:italic}
+.char-count{font-size:10px;color:var(--ink3);text-align:right;margin-top:4px;font-family:monospace}
+.thinking{display:flex;align-items:center;gap:6px;color:var(--ink3);font-size:13px;font-style:italic}
+.thinking span{width:7px;height:7px;border-radius:50%;background:var(--orange);animation:dotBlink 1.2s infinite}
+.thinking span:nth-child(2){animation-delay:.2s}
+.thinking span:nth-child(3){animation-delay:.4s}
+.trans-divider{display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(135deg,var(--orange-xl),var(--teal-xl));border-top:2px solid var(--border);border-bottom:2px solid var(--border);gap:14px;flex-wrap:wrap}
+.translate-btn{background:linear-gradient(135deg,var(--orange),var(--orange-l));color:var(--white);border:none;border-radius:50px;padding:12px 32px;font-family:var(--fd);font-size:16px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:9px;box-shadow:0 4px 16px rgba(255,112,67,.35)}
+.translate-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(255,112,67,.45)}
+.translate-btn:active{transform:scale(.97)}
+.translate-btn:disabled{opacity:.5;cursor:not-allowed;transform:none !important}
+.translate-btn .spinner{animation:spin 1s linear infinite;display:inline-block}
+.copy-btn{background:var(--white);border:2px solid var(--border);border-radius:50px;padding:10px 18px;font-family:var(--fd);font-size:13px;font-weight:600;cursor:pointer;color:var(--ink3);transition:all .2s;display:flex;align-items:center;gap:6px}
+.copy-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-xl)}
+.copy-btn.copied{border-color:var(--teal);color:var(--teal);background:var(--teal-xl)}
+.examples{max-width:760px;margin:0 auto 32px;padding:0 20px}
+.examples-title{font-family:var(--fd);font-size:18px;font-weight:600;color:var(--ink2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.examples-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.example-card{background:var(--white);border:2px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:8px}
+.example-card:hover{border-color:var(--orange-l);transform:translateY(-2px);box-shadow:var(--sh)}
+.example-card:active{transform:scale(.98)}
+.ex-original{font-size:12px;color:var(--ink3);line-height:1.5;font-style:italic}
+.ex-from{font-size:11px;font-weight:700;color:var(--orange);display:flex;align-items:center;gap:4px;text-transform:uppercase;letter-spacing:.05em}
+.history{max-width:760px;margin:0 auto 32px;padding:0 20px}
+.history-title{font-family:var(--fd);font-size:18px;font-weight:600;color:var(--ink2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.hist-item{background:var(--white);border:2px solid var(--border);border-radius:16px;padding:16px;margin-bottom:10px;animation:slideIn .3s ease;display:flex;gap:14px;align-items:flex-start}
+.hist-ico{font-size:28px;flex-shrink:0;animation:bounce 2s infinite}
+.hist-content{flex:1;min-width:0}
+.hist-dir{font-size:10px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.hist-original{font-size:12px;color:var(--ink3);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-translated{font-size:13px;color:var(--ink2);line-height:1.5;white-space:pre-wrap}
+.hist-time{font-size:10px;color:var(--border);font-family:monospace;margin-top:5px}
+.catfact{max-width:760px;margin:0 auto 32px;padding:0 20px}
+.fact-card{background:linear-gradient(135deg,var(--purple-xl),var(--teal-xl));border:2px solid rgba(124,77,255,.15);border-radius:20px;padding:20px 24px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .2s}
+.fact-card:hover{transform:translateY(-2px);box-shadow:var(--sh)}
+.fact-ico{font-size:32px;animation:float 2.5s ease-in-out infinite;flex-shrink:0}
+.fact-label{font-size:10px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.fact-text{font-size:13.5px;color:var(--ink2);line-height:1.6;animation:fadeUp .4s ease}
+.mood-section{max-width:760px;margin:0 auto 32px;padding:0 20px}
+.mood-card{background:var(--white);border:2px solid var(--border);border-radius:20px;padding:20px 24px;box-shadow:var(--sh)}
+.mood-title{font-family:var(--fd);font-size:16px;font-weight:600;color:var(--ink2);margin-bottom:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.moods{display:flex;gap:10px;flex-wrap:wrap}
+.mood-chip{background:var(--orange-xl);border:2px solid transparent;border-radius:50px;padding:9px 18px;font-family:var(--fd);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px;color:var(--ink2)}
+.mood-chip:hover{border-color:var(--orange-l);transform:scale(1.04)}
+.mood-chip.on{background:linear-gradient(135deg,var(--orange),var(--orange-l));color:var(--white);border-color:transparent;box-shadow:0 3px 12px rgba(255,112,67,.3);animation:pulse 1.5s ease-in-out infinite}
+footer{text-align:center;padding:24px;color:var(--ink3);font-size:12px;border-top:2px solid var(--border);background:var(--warm);margin-top:auto}
+footer span{animation:rainbow 4s ease-in-out infinite}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--teal);color:var(--white);border-radius:50px;padding:12px 24px;font-family:var(--fd);font-size:14px;font-weight:600;animation:pop .3s ease;box-shadow:var(--sh-lg);z-index:999;white-space:nowrap;display:flex;align-items:center;gap:8px}
+@media(max-width:600px){
+  .panels{grid-template-columns:1fr}
+  .panel-l{border-right:none;border-bottom:2px solid var(--border)}
+  .examples-grid{grid-template-columns:1fr}
+  .moods{gap:7px}
+  .header{padding:14px 20px}
+  .brand-name{font-size:20px}
+}
+`;
+
+const CAT_FACTS = [
+  "Los gatos pasan el 70% de su vida durmiendo. O sea, viven mejor que tú.",
+  "Los gatos no pueden saborear lo dulce. Por eso no les importa tu cumpleaños.",
+  "El ronroneo de un gato vibra entre 25 y 150 Hz, frecuencia que ayuda a sanar huesos.",
+  "Los gatos tienen 32 músculos en cada oreja. La usan para ignorarte con precisión quirúrgica.",
+  "Un gato doméstico puede correr a 48 km/h. Pero prefiere no hacerlo.",
+  "Los gatos sudan por las patas. Por eso dejan huellas en el teclado.",
+  "El cerebro de un gato tiene una similitud del 90% con el cerebro humano. Pero son más listos.",
+  "Los gatos parpadean lento para expresar amor. Si tu gato te mira y parpadea, te quiere (por ahora).",
+  "Los gatos tienen un tercer párpado para proteger sus ojos. Como modo avanzado.",
+  "Un grupo de gatos se llama 'clowder'. Un grupo de gatitos se llama 'kindle'. Un gato solo se llama 'el jefe'.",
+];
+
+const MOODS = [
+  { id:"feliz", emoji:"😺", label:"Feliz" },
+  { id:"enojado", emoji:"😾", label:"Enojado" },
+  { id:"hambre", emoji:"🍽️", label:"Con hambre" },
+  { id:"sueño", emoji:"😴", label:"Con sueño" },
+  { id:"jugueton", emoji:"🐾", label:"Juguetón" },
+  { id:"asustado", emoji:"🙀", label:"Asustado" },
+  { id:"mimoso", emoji:"😻", label:"Mimoso" },
+  { id:"desdén", emoji:"🙄", label:"Con desdén" },
+];
+
+const EXAMPLES_CAT_TO_HUMAN = [
+  { text:"Miau miau MIAU", hint:"Protocolo básico de gato hambriento" },
+  { text:"Prrrrr... miau", hint:"Modo feliz + pedido de caricias" },
+  { text:"MRROW!! HSSSS", hint:"Gato en modo guerra total" },
+  { text:"mrrp? miau miau", hint:"Gato confundido o curioso" },
+];
+
+const EXAMPLES_HUMAN_TO_CAT = [
+  { text:"¿Tienes hambre mi amor?", hint:"Pregunta clásica al gato" },
+  { text:"¡Bájate de ahí ahora mismo!", hint:"Orden que el gato ignorará" },
+  { text:"Te quiero muchísimo gatito", hint:"Declaración de amor felino" },
+  { text:"Son las 3am, ¡deja de gritar!", hint:"Desesperación nocturna humana" },
+];
+
+const HUMAN_TRANSLATIONS = {
+  hambre: [
+    "Oye humano, el plato está peligrosamente vacío. Esto ya roza el maltrato gourmet.",
+    "Necesito comida ahora. No en cinco minutos. Ahora. Miau con urgencia."
+  ],
+  feliz: [
+    "Te concedo el honor de acariciarme. No arruines este momento.",
+    "Estoy contento, suave y glorioso. Puedes admirarme en silencio."
+  ],
+  enojado: [
+    "Retrocede. Ese comentario fue ofensivo y tu energía me molesta.",
+    "Estoy indignado. Hubo una falta grave a mi dignidad felina."
+  ],
+  sueño: [
+    "No me hables. Estoy ocupado sosteniendo el equilibrio cósmico desde esta siesta.",
+    "Si me despiertas otra vez, dormiré encima de tu cara por venganza."
+  ],
+  jugueton: [
+    "He decidido correr sin motivo y botar algo valioso. Participa si te atreves.",
+    "Necesito caos, velocidad y una caja vacía. Hazte útil."
+  ],
+  asustado: [
+    "Vi algo sospechoso. Quizá un fantasma. O una bolsa. Igual grave.",
+    "Estoy alerta. Protege la casa mientras me escondo con dignidad."
+  ],
+  mimoso: [
+    "Ven, humano. Te permito recibir el privilegio de mi ternura.",
+    "Necesito cariño, calorcito y que no te muevas ni un centímetro."
+  ],
+  "desdén": [
+    "Te escuché. Simplemente decidí no responderte.",
+    "Tu propuesta fue evaluada y rechazada con elegancia."
+  ],
+  neutral: [
+    "Estoy observando, juzgando y considerando si vales otra interacción.",
+    "Tal vez quiero algo. Tal vez solo vine a interrumpir tu paz."
+  ]
+};
+
+function fmtTime() {
+  return new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+}
+
+function Toast({msg,onClose}) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 2500);
+    return () => clearTimeout(t);
+  }, []);
+  return <div className="toast">✓ {msg}</div>;
+}
+
+function Thinking() {
+  return (
+    <div className="thinking">
+      <span/><span/><span/>
+      <span style={{marginLeft:4}}>traduciendo...</span>
+    </div>
+  );
+}
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function humanToCat(text, mood) {
+  const base = [
+    "miau",
+    "mrrp",
+    "prrrr",
+    "mrrow",
+    "MIAU",
+    "hsss",
+    "miau miau",
+    "prrrr... mrrp",
+  ];
+  const actionsByMood = {
+    feliz: ["*ronronea fuerte*", "*se frota en tu pierna*", "*parpadea lento*"],
+    enojado: ["*mueve la cola con furia*", "*te juzga*", "*bufa con elegancia*"],
+    hambre: ["*golpea el plato*", "*te sigue a la cocina*", "*maúlla al refrigerador*"],
+    sueño: ["*se enrolla*", "*bosteza*", "*te ignora medio dormido*"],
+    jugueton: ["*sale corriendo*", "*persigue una sombra*", "*salta sin motivo*"],
+    asustado: ["*se esconde*", "*abre los ojos enorme*", "*se congela*"],
+    mimoso: ["*se sube encima tuyo*", "*amasando pancita*", "*ronronea como motor*"],
+    "desdén": ["*te mira y se va*", "*finge que no existes*", "*se lame la pata*"],
+    neutral: ["*te observa*", "*mueve una oreja*", "*cambia de posición*"],
+  };
+
+  const emphasis = text.includes("!") || /te quiero|hambre|ahora|3am|bájate/i.test(text) ? "MIAAAU" : pick(base);
+  const line1 = `${emphasis} ${pick(base)} ${pick(base)}`;
+  const line2 = `${pick(actionsByMood[mood || "neutral"])} ${pick(base)}...`;
+  const line3 = text.length > 35 ? `${pick(base).toUpperCase()} ${pick(base)} ${pick(actionsByMood[mood || "neutral"])}` : "";
+  return [line1, line2, line3].filter(Boolean).join("\n");
+}
+
+function catToHuman(text, mood) {
+  const clean = text.toLowerCase();
+  if (/hss|grrr|mrrow!!|buf/i.test(text)) return pick(HUMAN_TRANSLATIONS.enojado);
+  if (/prrr|ronr|mrrp/i.test(text) && /miau/.test(clean)) return pick(HUMAN_TRANSLATIONS[mood || "mimoso"]);
+  if ((clean.match(/miau/g) || []).length >= 3 || /MIAU/.test(text)) return pick(HUMAN_TRANSLATIONS[mood || "hambre"]);
+  if (/[\?]/.test(text)) return "Estoy investigando algo importantísimo. Puede ser una mosca. Puede ser tu alma.";
+  return pick(HUMAN_TRANSLATIONS[mood || "neutral"]);
+}
+
+function App() {
+  const [direction, setDirection] = useState("cat2human");
+  const [input, setInput] = useState("");
+  const [output, setOutput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [factIdx, setFactIdx] = useState(0);
+  const [mood, setMood] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const textareaRef = useRef(null);
+
+  const isCatToHuman = direction === "cat2human";
+  const examples = isCatToHuman ? EXAMPLES_CAT_TO_HUMAN : EXAMPLES_HUMAN_TO_CAT;
+  const floaters = ["🐱","😺","🐾","😻","🙀","😸","😹","😼","🐈","🐈‍⬛"];
+
+  const translate = async () => {
+    if (!input.trim() || loading) return;
+    setLoading(true);
+    setOutput("");
+
+    await new Promise(resolve => setTimeout(resolve, 700));
+
+    const result = isCatToHuman ? catToHuman(input, mood) : humanToCat(input, mood);
+
+    setOutput(result);
+    setHistory(prev => [{
+      direction,
+      original: input,
+      translated: result,
+      mood,
+      time: fmtTime(),
+    }, ...prev.slice(0, 9)]);
+    setLoading(false);
+  };
+
+  const copyOutput = () => {
+    if (!output) return;
+    navigator.clipboard.writeText(output).catch(() => {});
+    setCopied(true);
+    setToast("¡Traducción copiada!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const useExample = (text) => {
+    setInput(text);
+    setOutput("");
+    textareaRef.current?.focus();
+  };
+
+  const handleKey = (e) => {
+    if (e.key === "Enter" && e.ctrlKey) translate();
+  };
+
+  return (
+    <>
+      <style>{FONTS + CSS}</style>
+      <div className="app">
+        <header className="header">
+          <div className="brand">
+            <span className="brand-ico">🐱</span>
+            <div>
+              <div className="brand-name">MiauTraductor</div>
+            </div>
+            <span className="brand-tag">IA Felina</span>
+          </div>
+          <div className="header-r">
+            <span className="lang-badge">🇨🇱 Español · Gato</span>
+          </div>
+        </header>
+
+        <div className="hero fu">
+          <div className="floaters">
+            {floaters.map((cat, i) => (
+              <span key={i} className="floater" style={{
+                left: `${(i * 11 + 3) % 95}%`,
+                top: `${(i * 17 + 5) % 85}%`,
+                animationDelay: `${i * 0.4}s`,
+                animationDuration: `${2.5 + i * 0.3}s`,
+                fontSize: `${18 + (i % 3) * 8}px`,
+              }}>{cat}</span>
+            ))}
+          </div>
+          <h1 className="hero-title">¿Qué dijo el <span>gato</span>?</h1>
+          <p className="hero-sub">
+            Versión HTML standalone para abrir directo en Android o GitHub Pages.
+            <br />
+            Mantiene tu diseño y traduce sin backend.
+          </p>
+
+          <div className="dir-toggle">
+            <button
+              className={`dir-btn${isCatToHuman ? " on" : ""}`}
+              onClick={() => { setDirection("cat2human"); setInput(""); setOutput(""); }}>
+              😺 Gato → Humano
+            </button>
+            <span className="dir-arrow">⇄</span>
+            <button
+              className={`dir-btn${!isCatToHuman ? " on" : ""}`}
+              onClick={() => { setDirection("human2cat"); setInput(""); setOutput(""); }}>
+              🧑 Humano → Gato
+            </button>
+          </div>
+        </div>
+
+        <div className="mood-section fu">
+          <div className="mood-card">
+            <div className="mood-title">
+              🎭 ¿Cuál es el estado de ánimo del gato?
+              <span style={{fontSize:11,color:"var(--ink3)",fontWeight:400,marginLeft:4}}>(opcional)</span>
+            </div>
+            <div className="moods">
+              {MOODS.map(m => (
+                <button
+                  key={m.id}
+                  className={`mood-chip${mood === m.id ? " on" : ""}`}
+                  onClick={() => setMood(mood === m.id ? null : m.id)}>
+                  {m.emoji} {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="translator">
+          <div className="trans-card pop">
+            <div className="panels">
+              <div className="panel panel-l">
+                <div className="panel-label">
+                  <span className="panel-icon">{isCatToHuman ? "😺" : "🧑"}</span>
+                  {isCatToHuman ? "Escribe en Gato" : "Escribe en Humano"}
+                </div>
+                <textarea
+                  ref={textareaRef}
+                  className="panel-textarea"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKey}
+                  placeholder={isCatToHuman
+                    ? "Ej: Miau miau MIAU!!\nprrrrr... mrrow\n\nCtrl+Enter para traducir"
+                    : "Ej: ¿Por qué me despertaste a las 3am?\n\nCtrl+Enter para traducir"}
+                  maxLength={400}
+                />
+                <div className="char-count">{input.length}/400</div>
+              </div>
+
+              <div className="panel">
+                <div className="panel-label">
+                  <span className="panel-icon">{isCatToHuman ? "🧑" : "😸"}</span>
+                  {isCatToHuman ? "Traducción Humana" : "Traducción Gatuna"}
+                </div>
+                <div className="panel-output">
+                  {loading ? <Thinking/> : output ? (
+                    <div className="output-text">{output}</div>
+                  ) : (
+                    <div className="output-placeholder">
+                      {isCatToHuman ? "La traducción aparecerá aquí 🐾" : "Tu mensaje en gato aparecerá aquí 😺"}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="trans-divider">
+              <button className="translate-btn" onClick={translate} disabled={loading || !input.trim()}>
+                {loading ? <><span className="spinner">⟳</span> Traduciendo...</> : <>{isCatToHuman ? "😺→🧑" : "🧑→😺"} Traducir</>}
+              </button>
+
+              {output && (
+                <button className={`copy-btn${copied ? " copied" : ""}`} onClick={copyOutput}>
+                  {copied ? "✓ Copiado" : "📋 Copiar"}
+                </button>
+              )}
+
+              {(input || output) && (
+                <button className="copy-btn" onClick={() => { setInput(""); setOutput(""); }}>
+                  🗑 Limpiar
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div style={{fontSize:11,color:"var(--ink3)",textAlign:"center",marginTop:8}}>
+            Esta versión usa React por CDN y lógica local para que sí abra bonito en HTML.
+          </div>
+        </div>
+
+        <div className="examples fu">
+          <div className="examples-title">💡 Ejemplos {isCatToHuman ? "de gato" : "para traducir"}</div>
+          <div className="examples-grid">
+            {examples.map((ex, i) => (
+              <div key={i} className="example-card" onClick={() => useExample(ex.text)}>
+                <div className="ex-from">{isCatToHuman ? "😺 Gato dice:" : "🧑 Humano dice:"}</div>
+                <div className="ex-original">"{ex.text}"</div>
+                <div style={{fontSize:10,color:"var(--ink3)",fontStyle:"italic"}}>{ex.hint}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="catfact fu">
+          <div className="fact-card" onClick={() => setFactIdx(i => (i + 1) % CAT_FACTS.length)} title="Click para otro dato">
+            <span className="fact-ico">🐱</span>
+            <div>
+              <div className="fact-label">🔬 Dato felino #{factIdx + 1} · Click para otro</div>
+              <div className="fact-text" key={factIdx}>{CAT_FACTS[factIdx]}</div>
+            </div>
+          </div>
+        </div>
+
+        {history.length > 0 && (
+          <div className="history fu">
+            <div className="history-title">
+              📜 Historial de traducciones
+              <button
+                onClick={() => setHistory([])}
+                style={{marginLeft:"auto",background:"none",border:"none",color:"var(--ink3)",fontSize:11,cursor:"pointer",textDecoration:"underline",fontFamily:"var(--ff)"}}>
+                Borrar todo
+              </button>
+            </div>
+            {history.map((h, i) => (
+              <div key={i} className="hist-item">
+                <span className="hist-ico">{h.direction === "cat2human" ? "😺" : "🧑"}</span>
+                <div className="hist-content">
+                  <div className="hist-dir">
+                    {h.direction === "cat2human" ? "Gato → Humano" : "Humano → Gato"}
+                    {h.mood && ` · ${MOODS.find(m => m.id === h.mood)?.emoji} ${MOODS.find(m => m.id === h.mood)?.label}`}
+                  </div>
+                  <div className="hist-original">"{h.original}"</div>
+                  <div className="hist-translated">{h.translated}</div>
+                  <div className="hist-time">{h.time}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <footer>
+          Hecho con <span>❤️</span> y muchos maullidos · MiauTraductor by VibeCodingChile
+          <br />
+          <span style={{fontSize:10,opacity:.6,marginTop:4,display:"block"}}>
+            HTML standalone listo para GitHub Pages o abrir directo desde Android.
+          </span>
+        </footer>
+      </div>
+
+      {toast && <Toast msg={toast} onClose={() => setToast(null)} />}
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+  </script>
+</body>
+</html>
